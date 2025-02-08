@@ -17,79 +17,80 @@ const readline = require('readline');  // readline 모듈 추가
     });
 
     // 📌 3. 데이터 입력 및 검색 반복 실행
-    const row = data[0];
-    console.log(`🔍 검색 중: ${row.관할구청} - ${row.법정동} - ${row.본번} - ${row.부번} - ${row.층}`);
+    for (const row of data) {
+        console.log(`🔍 검색 중: ${row.관할구청} - ${row.법정동} - ${row.본번} - ${row.부번} - ${row.층}`);
 
-    // ① 관할구청(시군구) 선택 (select)
-    await page.select('#sggnm', getDistrictCode(row.관할구청));
+        // ① 관할구청(시군구) 선택 (select)
+        await page.select('#sggnm', getDistrictCode(row.관할구청));
 
-    console.log('읍면동 옵션 로딩 중...')
-    await page.waitForFunction(() => {
-        return document.querySelectorAll('#umdnm option').length > 1;  // '읍,면,동' 외에 다른 옵션이 있는지 확인
-    });
+        console.log('읍면동 옵션 로딩 중...')
+        await page.waitForFunction(() => {
+            return document.querySelectorAll('#umdnm option').length > 1;  // '읍,면,동' 외에 다른 옵션이 있는지 확인
+        });
 
-    // ④ 법정동 선택 (select) - 읍면동이 로드된 후 선택
-    // 법정동(읍면동동) 코드 확인
-    const townCode = getTownCode(row.법정동);
-    if (!townCode) {
-        console.log(`🔴 법정동 코드가 없거나 잘못된 값: ${row.법정동}`);
-    }
+        // ④ 법정동 선택 (select) - 읍면동이 로드된 후 선택
+        // 법정동(읍면동동) 코드 확인
+        const townCode = getTownCode(row.법정동);
+        if (!townCode) {
+            console.log(`🔴 법정동 코드가 없거나 잘못된 값: ${row.법정동}`);
+        }
 
-    // 읍면동 선택
-    await page.select('#umdnm', townCode);
+        // 읍면동 선택
+        await page.select('#umdnm', townCode);
 
-    // ③ 본번 입력 (input)
-    await page.type('#textfield', row.본번, { delay: 100 });
+        // ③ 본번 입력 (input)
+        await page.type('#textfield', row.본번, { delay: 100 });
 
-    // ④ 부번 입력 (input)
-    await page.type('#textfield2', row.부번, { delay: 100 });
+        // ④ 부번 입력 (input)
+        await page.type('#textfield2', row.부번, { delay: 100 });
 
-    // ⑤ 검색 버튼 클릭
-    await page.waitForSelector('#searching a');
-    await page.click('#searching a');
+        // ⑤ 검색 버튼 클릭
+        await page.waitForSelector('#searching a');
+        await page.click('#searching a');
 
-    console.log('검색 중...')
-        
-    // ⑥ 검색 결과 로딩 대기 (5초 대기)
-    await new Promise(resolve => setTimeout(resolve, 5000));
-    console.log('✅ 검색 완료!')
+        console.log('검색 중...')
+            
+        // ⑥ 검색 결과 로딩 대기 (5초 대기)
+        await new Promise(resolve => setTimeout(resolve, 5000));
+        console.log('✅ 검색 완료!')
 
-    // ⑦ "개별공시지가" 탭 클릭
-    await page.waitForSelector('a[title="개별공시지가 탭 선택"]', { visible: true });
-    await page.click('a[title="개별공시지가 탭 선택"]');
-    console.log('개별공시지가 탭 선택');
+        // ⑦ "개별공시지가" 탭 클릭
+        await page.waitForSelector('a[title="개별공시지가 탭 선택"]', { visible: true });
+        await page.click('a[title="개별공시지가 탭 선택"]');
+        console.log('개별공시지가 탭 선택');
 
-    // ⑧ 가격기준년도와 개별공시지가 가져오기
-    const landPriceData = await page.evaluate(() => {
-    const rows = document.querySelectorAll('.table0202 tbody tr');
+        // ⑧ 가격기준년도와 개별공시지가 가져오기
+        const landPriceData = await page.evaluate(() => {
+        const rows = document.querySelectorAll('.table0202 tbody tr');
 
-    for (const row of rows) {
-        const yearCell = row.querySelector('td[headers="YEAR"]');
-        const priceCell = row.querySelector('td[headers="JIGA"]');
+        for (const row of rows) {
+            const yearCell = row.querySelector('td[headers="YEAR"]');
+            const priceCell = row.querySelector('td[headers="JIGA"]');
 
-        if (yearCell && priceCell) {
-            const year = yearCell.innerText.trim();
-            const price = priceCell.innerText.trim();
+            if (yearCell && priceCell) {
+                const year = yearCell.innerText.trim();
+                const price = priceCell.innerText.trim();
 
-            if (year === '2024') {
-                return { year, price };
+                if (year === '2024') {
+                    return { year, price };
+                }
             }
         }
-    }
-    return null;
-    });
+        return null;
+        });
 
-    if (landPriceData) {
-        console.log(`💡 ${landPriceData.year}년 개별공시지가: ${landPriceData.price}`);
+        if (landPriceData) {
+            console.log(`💡 ${landPriceData.year}년 개별공시지가: ${landPriceData.price}`);
 
-        // 📌 8번째 열(시가표준)에 개별공시지가 값을 추가
-        const rowIndex = data.indexOf(row) + 2; // 엑셀에서 1부터 시작하므로 +2
-        const 시가표준셀 = 'H' + rowIndex;
-        sheet[시가표준셀] = { t: 's', v: landPriceData.price }; // 엑셀 값 업데이트
+            // 📌 8번째 열(시가표준)에 개별공시지가 값을 추가
+            const rowIndex = data.indexOf(row) + 2; // 엑셀에서 1부터 시작하므로 +2
+            const 시가표준셀 = 'H' + rowIndex;
+            sheet[시가표준셀] = { t: 's', v: landPriceData.price }; // 엑셀 값 업데이트
 
-        console.log(`📌 ${rowIndex}행의 '시가표준' 값이 업데이트되었습니다.`);
-    } else {
-        console.log("⚠️ 2024년 개별공시지가를 찾을 수 없습니다.");
+            console.log(`📌 ${rowIndex}행의 '시가표준' 값이 업데이트되었습니다.`);
+        } else {
+            console.log("⚠️ 2024년 개별공시지가를 찾을 수 없습니다.");
+        }
     }
 
     console.log("✅ 모든 검색이 완료되었습니다.");
