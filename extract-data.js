@@ -41,6 +41,17 @@ const readline = require('readline');  // readline 모듈 추가
     }
 
     console.log("✅ 모든 검색이 완료되었습니다. 브라우저를 닫으려면 Enter 키를 누르세요.");
+
+    // ✅ 사용자가 Enter 키를 눌러야 브라우저 닫힘
+    const rl = readline.createInterface({
+        input: process.stdin,
+        output: process.stdout
+    });
+
+    rl.question("Enter 키를 누르면 브라우저가 닫힙니다. ", () => {
+        browser.close();
+        rl.close();
+    });
 })();
 
 // 🔹 관할구청 이름을 코드로 변환하는 함수
