@@ -61,17 +61,17 @@ const readline = require('readline');  // readline 모듈 추가
 
     // ⑧ 가격기준년도와 개별공시지가 가져오기
     const landPriceData = await page.evaluate(() => {
-    const rows = document.querySelectorAll('.table0202 tbody tr'); // 테이블 내 모든 행 가져오기
+    const rows = document.querySelectorAll('.table0202 tbody tr');
 
     for (const row of rows) {
-        const yearCell = row.querySelector('td[headers="YEAR"]'); // 가격기준년도
-        const priceCell = row.querySelector('td[headers="JIGA"]'); // 개별공시지가
+        const yearCell = row.querySelector('td[headers="YEAR"]');
+        const priceCell = row.querySelector('td[headers="JIGA"]');
 
         if (yearCell && priceCell) {
-            const year = yearCell.innerText.trim(); // 텍스트 추출 및 공백 제거
+            const year = yearCell.innerText.trim();
             const price = priceCell.innerText.trim();
 
-            if (year === '2024') { // 2024년 데이터만 선택
+            if (year === '2024') {
                 return { year, price };
             }
         }
@@ -80,20 +80,31 @@ const readline = require('readline');  // readline 모듈 추가
     });
 
     if (landPriceData) {
-        console.log(`✅ ${landPriceData.year}년 개별공시지가: ${landPriceData.price}`);
+        console.log(`💡 ${landPriceData.year}년 개별공시지가: ${landPriceData.price}`);
+
+        // 📌 8번째 열(시가표준)에 개별공시지가 값을 추가
+        const rowIndex = data.indexOf(row) + 2; // 엑셀에서 1부터 시작하므로 +2
+        const 시가표준셀 = 'H' + rowIndex;
+        sheet[시가표준셀] = { t: 's', v: landPriceData.price }; // 엑셀 값 업데이트
+
+        console.log(`📌 ${rowIndex}행의 '시가표준' 값이 업데이트되었습니다.`);
     } else {
         console.log("⚠️ 2024년 개별공시지가를 찾을 수 없습니다.");
     }
 
-    console.log("✅ 모든 검색이 완료되었습니다. 브라우저를 닫으려면 Enter 키를 누르세요.");
-
+    console.log("✅ 모든 검색이 완료되었습니다.");
+    
+    // 📌 수정된 엑셀을 저장 (덮어쓰기)
+    XLSX.writeFile(workbook, 'data_address.xlsx');
+    console.log("✅ 기존 엑셀 파일에 '시가표준' 값을 업데이트했습니다.");
+    
     // ✅ 사용자가 Enter 키를 눌러야 브라우저 닫힘
     const rl = readline.createInterface({
         input: process.stdin,
         output: process.stdout
     });
 
-    rl.question("Enter 키를 누르면 브라우저가 닫힙니다. ", () => {
+    rl.question(() => {
         browser.close();
         rl.close();
     });
