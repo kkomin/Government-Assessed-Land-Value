@@ -48,8 +48,42 @@ const readline = require('readline');  // readline 모듈 추가
     await page.waitForSelector('#searching a');
     await page.click('#searching a');
 
-    // ⑥ 검색 결과 로딩 대기 (3초 대기)
-    await new Promise(resolve => setTimeout(resolve, 5000)); // 5초 대기
+    console.log('검색 중...')
+        
+    // ⑥ 검색 결과 로딩 대기 (5초 대기)
+    await new Promise(resolve => setTimeout(resolve, 5000));
+    console.log('✅ 검색 완료!')
+
+    // ⑦ "개별공시지가" 탭 클릭
+    await page.waitForSelector('a[title="개별공시지가 탭 선택"]', { visible: true });
+    await page.click('a[title="개별공시지가 탭 선택"]');
+    console.log('개별공시지가 탭 선택');
+
+    // ⑧ 가격기준년도와 개별공시지가 가져오기
+    const landPriceData = await page.evaluate(() => {
+    const rows = document.querySelectorAll('.table0202 tbody tr'); // 테이블 내 모든 행 가져오기
+
+    for (const row of rows) {
+        const yearCell = row.querySelector('td[headers="YEAR"]'); // 가격기준년도
+        const priceCell = row.querySelector('td[headers="JIGA"]'); // 개별공시지가
+
+        if (yearCell && priceCell) {
+            const year = yearCell.innerText.trim(); // 텍스트 추출 및 공백 제거
+            const price = priceCell.innerText.trim();
+
+            if (year === '2024') { // 2024년 데이터만 선택
+                return { year, price };
+            }
+        }
+    }
+    return null;
+    });
+
+    if (landPriceData) {
+        console.log(`✅ ${landPriceData.year}년 개별공시지가: ${landPriceData.price}`);
+    } else {
+        console.log("⚠️ 2024년 개별공시지가를 찾을 수 없습니다.");
+    }
 
     console.log("✅ 모든 검색이 완료되었습니다. 브라우저를 닫으려면 Enter 키를 누르세요.");
 
