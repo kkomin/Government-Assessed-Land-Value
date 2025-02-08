@@ -3,7 +3,7 @@ const XLSX = require('xlsx');
 
 (async () => {
     // 📌 1. 엑셀 파일 불러오기
-    const workbook = XLSX.readFile('data.xlsx'); // 🔹 여기에 사용자의 엑셀 파일 이름 입력
+    const workbook = XLSX.readFile('data_address.xlsx');
     const sheetName = workbook.SheetNames[0]; // 첫 번째 시트 선택
     const sheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet); // 엑셀 데이터를 JSON 형태로 변환
