@@ -1,5 +1,6 @@
 const puppeteer = require('puppeteer');
 const XLSX = require('xlsx');
+const readline = require('readline');  // readline 모듈 추가
 
 (async () => {
     // 📌 1. 엑셀 파일 불러오기
@@ -17,34 +18,29 @@ const XLSX = require('xlsx');
 
     // 📌 3. 데이터 입력 및 검색 반복 실행
     for (const row of data) {
-        console.log(`🔍 검색 중: ${row.관할구청} - ${row.법정동} - ${row.본번} - ${row.부번} - ${row.층} - ${row.읍면동}`);
+        console.log(`🔍 검색 중: ${row.관할구청} - ${row.법정동} - ${row.본번} - ${row.부번} - ${row.층}`);
 
-        // ① 관할구청(시군구) 선택
+        // ① 관할구청(시군구) 선택 (select)
         await page.select('#sggnm', getDistrictCode(row.관할구청));
 
-        // ② 법정동 입력
-        await page.type('#bjdong', row.법정동, { delay: 100 });
+        // ② 법정동(읍면동) 선택 (select)
+        await page.select('#umdnm', getTownCode(row.법정동));
 
-        // ③ 읍면동 선택
-        await page.select('#umdnm', getUmdnmCode(row.읍면동));
+        // ③ 본번 입력 (input)
+        await page.type('#textfield', row.본번, { delay: 100 });
 
-        // ④ 본번 입력
-        await page.type('#bonbun', row.본번, { delay: 100 });
+        // ④ 부번 입력 (input)
+        await page.type('#textfield2', row.부번, { delay: 100 });
 
-        // ⑤ 부번 입력
-        await page.type('#bubun', row.부번, { delay: 100 });
+        // ⑤ 검색 클릭
+        await page.waitForSelector('#searching a');
+        await page.click('#searching a');
 
-        // ⑥ 층 입력
-        await page.type('#flrNo', row.층, { delay: 100 });
-
-        // ⑦ 검색 버튼 클릭
-        await page.click('#searchBtn');
-
-        // ⑧ 검색 결과 로딩 대기 (최대 3초)
-        await page.waitForTimeout(3000);
+        // ⑥ 검색 결과 로딩 대기 (3초 대기)
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 3초 대기
     }
 
-    console.log("✅ 모든 검색이 완료되었습니다!");
+    console.log("✅ 모든 검색이 완료되었습니다. 브라우저를 닫으려면 Enter 키를 누르세요.");
 })();
 
 // 🔹 관할구청 이름을 코드로 변환하는 함수
@@ -76,13 +72,12 @@ function getDistrictCode(name) {
         '중구': '1114000000',
         '중랑구': '1126000000'
     };
-
     return districts[name] || ''; // 기본적으로 값이 없으면 빈 문자열 반환
 }
 
-// 🔹 읍면동 이름을 코드로 변환하는 함수
-function getUmdnmCode(name) {
-    const umdnam = {
+// 🔹 법정동 이름을 코드로 변환하는 함수
+function getTownCode(name) {
+    const towns = {
         '가회동': '1111014600',
         '견지동': '1111012900',
         '경운동': '1111013400',
@@ -171,6 +166,5 @@ function getUmdnmCode(name) {
         '효제동': '1111016200',
         '훈정동': '1111015000'
     };
-
-    return umdnam[name] || ''; // 기본적으로 값이 없으면 빈 문자열 반환
+    return towns[name] || '';
 }
