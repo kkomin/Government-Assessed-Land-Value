@@ -23,8 +23,21 @@ const readline = require('readline');  // readline 모듈 추가
         // ① 관할구청(시군구) 선택 (select)
         await page.select('#sggnm', getDistrictCode(row.관할구청));
 
-        // ② 법정동(읍면동) 선택 (select)
-        await page.select('#umdnm', getTownCode(row.법정동));
+        console.log('읍면동 옵션 로딩 중...')
+        await page.waitForFunction(() => {
+            return document.querySelectorAll('#umdnm option').length > 1;  // '읍,면,동' 외에 다른 옵션이 있는지 확인
+        });
+
+        // ④ 법정동 선택 (select) - 읍면동이 로드된 후 선택
+        // 법정동(읍면동동) 코드 확인
+        const townCode = getTownCode(row.법정동);
+        if (!townCode) {
+            console.log(`🔴 법정동 코드가 없거나 잘못된 값: ${row.법정동}`);
+            continue;
+        }
+
+        // 읍면동 선택
+        await page.select('#umdnm', townCode);
 
         // ③ 본번 입력 (input)
         await page.type('#textfield', row.본번, { delay: 100 });
@@ -32,12 +45,12 @@ const readline = require('readline');  // readline 모듈 추가
         // ④ 부번 입력 (input)
         await page.type('#textfield2', row.부번, { delay: 100 });
 
-        // ⑤ 검색 클릭
+        // ⑤ 검색 버튼 클릭
         await page.waitForSelector('#searching a');
         await page.click('#searching a');
 
         // ⑥ 검색 결과 로딩 대기 (3초 대기)
-        await new Promise(resolve => setTimeout(resolve, 5000)); // 3초 대기
+        await new Promise(resolve => setTimeout(resolve, 5000)); // 5초 대기
     }
 
     console.log("✅ 모든 검색이 완료되었습니다. 브라우저를 닫으려면 Enter 키를 누르세요.");
