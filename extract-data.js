@@ -8,6 +8,7 @@ const readline = require('readline');  // readline 모듈 추가
     const sheetName = workbook.SheetNames[0]; // 첫 번째 시트 선택
     const sheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet, { raw: false }); // 엑셀 데이터를 JSON 형태로 변환
+    const length = 9669;
 
     // 📌 2. 브라우저 실행
     const browser = await puppeteer.launch({ headless: false });
@@ -17,68 +18,42 @@ const readline = require('readline');  // readline 모듈 추가
     });
 
     // 📌 3. 데이터 입력 및 검색 반복 실행
-    for (let i = 0; i < 9669; i++) { // 9688 데이터임 이후로는 틀밖에 없음.
+    for (let i = 0; i < length; i++) { // 9688 데이터임 이후로는 틀밖에 없음.
         const row = data[i];
         console.log(`🔍 검색 중: ${row.관할구청} - ${row.법정동} - ${row.본번} - ${row.부번} - ${row.층}`);
 
-        // 📌 모든 입력 값 초기화 후 다시 선택
-        await page.select('#sggnm', '');  // 시군구 리셋
-        await page.select('#umdnm', '');  // 읍면동 리셋
-        // 본번과 부번 초기화
-        await page.evaluate(() => {
-            document.querySelector('#textfield').value = '';  
-            document.querySelector('#textfield2').value = '';
-        });
-
-        console.log("📌 모든 입력 값을 초기화했습니다.");
-
         // 📌 시군구 선택 후 읍면동 옵션 로딩 대기
         console.log('🔄 시군구 선택 후 읍면동 로딩 대기');
-        // 시군구 선택 후 읍면동 옵션이 추가될 때까지 대기
         await page.select('#sggnm', getDistrictCode(row.관할구청));
 
         await page.waitForFunction(() => {
-            const options = Array.from(document.querySelectorAll('#umdnm option'));
-            return options.length > 1 && options.some(opt => opt.value !== '');
-        }, { timeout: 3000 });
+            const options = document.querySelectorAll('#umdnm option');
+            return options.length > 1 && options[1].value !== ''; // '읍,면,동' 외 다른 옵션이 로드되었는지 확인
+        });
 
         console.log('📍 읍면동 옵션 로딩 완료');
         
-        const townCode = getTownCode(row.법정동);
+        // ④ 법정동 선택 (select) - 읍면동이 로드된 후 선택
+        const townCode = getTownCode(row.법정동);  // 법정동 코드 가져오기
         if (!townCode) {
             console.log(`🔴 법정동 코드가 없거나 잘못된 값: ${row.법정동}`);
         } else {
+            console.log(`🌍 읍면동 코드: ${townCode}`);
+
+            // 읍면동 선택
             await page.select('#umdnm', townCode);
-            console.log(`📍 읍면동(${row.법정동}) 선택 완료`);
-
-            // 실제 선택된 값 확인
-            const selectedTown = await page.evaluate(() => document.querySelector('#umdnm').value);
-            console.log(`🧐 선택된 읍면동 코드: ${selectedTown}`);
-
-            if (selectedTown !== townCode) {
-                console.log('⚠️ 선택된 읍면동 코드가 올바르지 않습니다!');
-            }
-}
+            console.log(`📍 읍면동 선택 완료`);
+        }
 
         // 본번과 부번을 항상 4자리 문자열로 유지
         const 본번 = row.본번.toString().padStart(4, '0');
         const 부번 = row.부번.toString().padStart(4, '0');
-        
+
         // ③ 본번 입력 (input)
         await page.type('#textfield', 본번, { delay: 100 });
-        const bonbun = await page.evaluate(() => {
-            return document.querySelector('#textfield').value;
-        });
-        console.log(`1. 선택한 본번 : ${본번}`);
-        console.log(`- 현재 입력된 본번 값: ${bonbun}`);
-        
+
         // ④ 부번 입력 (input)
         await page.type('#textfield2', 부번, { delay: 100 });
-        const bubun = await page.evaluate(() => {
-            return document.querySelector('#textfield2').value;
-        });
-        console.log(`2. 선택한 부번 : ${부번}`);
-        console.log(`- 현재 입력된 부번 값: ${bubun}`);
 
         // ⑤ 검색 버튼 클릭
         await page.waitForSelector('#searching a');
@@ -119,7 +94,7 @@ const readline = require('readline');  // readline 모듈 추가
             console.log(`💡 ${landPriceData.year}년 개별공시지가: ${landPriceData.price}`);
 
             // 📌 8번째 열(시가표준)에 개별공시지가 값을 추가
-            const rowIndex = data.indexOf(row) + 2; // 엑셀에서 1부터 시작하므로 +2
+            const rowIndex = i + 2; // 엑셀에서 1부터 시작하므로 +2
             const 시가표준셀 = 'H' + rowIndex;
             sheet[시가표준셀] = { t: 's', v: landPriceData.price }; // 엑셀 값 업데이트
 
@@ -131,6 +106,17 @@ const readline = require('readline');  // readline 모듈 추가
         // 📌 엑셀에 값 저장
         XLSX.writeFile(workbook, 'data_address.xlsx');
         console.log("✅ 개별공시지가를 엑셀에 저장했습니다.");
+
+        //📌 모든 입력 값 초기화 후 다시 선택
+        await page.select('#sggnm', '');  // 시군구 리셋
+        await page.select('#umdnm', '');  // 읍면동 리셋
+        // 본번과 부번 초기화
+        await page.evaluate(() => {
+            document.querySelector('#textfield').value = '';  
+            document.querySelector('#textfield2').value = '';
+        });
+
+        console.log("📌 모든 입력 값을 초기화했습니다.");
 
         // 3초 대기 후 다음 데이터로 넘어가기
         await new Promise(resolve => setTimeout(resolve, 3000));
