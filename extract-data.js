@@ -21,10 +21,18 @@ const readline = require('readline');  // readline 모듈 추가
         const row = data[i];
         console.log(`🔍 검색 중: ${row.관할구청} - ${row.법정동} - ${row.본번} - ${row.부번} - ${row.층}`);
 
-        // ① 관할구청(시군구) 선택 (select)
+        // 📌 모든 입력 값 초기화 후 다시 선택
+        await page.select('#sggnm', '');  // 시군구 리셋
+        await page.select('#umdnm', '');  // 읍면동 리셋
+        await page.type('#textfield', '');  // 본번 리셋
+        await page.type('#textfield2', ''); // 부번 리셋
+
+        console.log("📌 모든 입력 값을 초기화했습니다.");
+
+        // 📌 시군구 선택 후 읍면동 옵션 로딩 대기
+        console.log('🔄 시군구 선택 후 읍면동 로딩 대기');
         await page.select('#sggnm', getDistrictCode(row.관할구청));
 
-        console.log('읍면동 옵션 로딩 중...');
         await page.waitForFunction(() => {
             const options = document.querySelectorAll('#umdnm option');
             return options.length > 1 && options[1].value !== ''; // '읍,면,동' 외 다른 옵션이 로드되었는지 확인
@@ -37,6 +45,8 @@ const readline = require('readline');  // readline 모듈 추가
         if (!townCode) {
             console.log(`🔴 법정동 코드가 없거나 잘못된 값: ${row.법정동}`);
         } else {
+            console.log(`🌍 읍면동 코드: ${townCode}`);
+
             // 읍면동 선택
             await page.select('#umdnm', townCode);
             console.log(`📍 읍면동 선택 완료`);
@@ -150,8 +160,6 @@ const readline = require('readline');  // readline 모듈 추가
         await new Promise(resolve => setTimeout(resolve, 5000));
         console.log('✅ 검색 완료!');
     }
-
-    console.log("✅ 모든 검색이 완료되었습니다.");
 
     // 📌 사용자가 Enter 키를 눌러야 브라우저 닫힘
     const rl = readline.createInterface({
