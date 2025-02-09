@@ -8,7 +8,10 @@ const readline = require('readline');  // readline 모듈 추가
     const sheetName = workbook.SheetNames[0]; // 첫 번째 시트 선택
     const sheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet, { raw: false }); // 엑셀 데이터를 JSON 형태로 변환
-    const length = 9669;
+    const length = 9669;    // 현재 저장된 엑셀 데이터 크기 (불필요한 row 크기)
+
+    // 📌 2. 저장된 개별공시지가 값을 위한 객체 초기화
+    let savedData = {};
 
     // 📌 2. 브라우저 실행
     const browser = await puppeteer.launch({ headless: false });
@@ -21,6 +24,18 @@ const readline = require('readline');  // readline 모듈 추가
     for (let i = 0; i < length; i++) { // 9688 데이터임 이후로는 틀밖에 없음.
         const row = data[i];
         console.log(`🔍 검색 중: ${row.관할구청} - ${row.법정동} - ${row.본번} - ${row.부번} - ${row.층}`);
+
+        // 📌 조건에 맞는 키 값 생성 (시군구 + 읍면동 + 본번 + 부번)
+        const key = `${row.관할구청}_${row.법정동}_${row.본번}_${row.부번}`;
+        
+        // 📌 저장된 데이터가 있으면 기존 값 사용
+        if (savedData[key]) {
+            console.log(`✅ 이미 저장된 개별공시지가: ${savedData[key]}`);
+            // 개별공시지가 값을 엑셀에 추가
+            const 시가표준셀 = 'H' + (i + 2);  // 엑셀에서 1부터 시작하므로 +2
+            sheet[시가표준셀] = { t: 's', v: savedData[key] };
+            continue;
+        }
 
         // 📌 시군구 선택 후 읍면동 옵션 로딩 대기
         console.log('🔄 시군구 선택 후 읍면동 로딩 대기');
@@ -98,9 +113,22 @@ const readline = require('readline');  // readline 모듈 추가
             const 시가표준셀 = 'H' + rowIndex;
             sheet[시가표준셀] = { t: 's', v: landPriceData.price }; // 엑셀 값 업데이트
 
+            // 📌 검색한 결과를 savedData에 저장
+            savedData[key] = landPriceData.price;
+            
             console.log(`📌 ${rowIndex}행의 '시가표준' 값이 업데이트되었습니다.`);
         } else {
             console.log("⚠️ 2024년 개별공시지가를 찾을 수 없습니다.");
+        }
+
+        // 📌 동일한 조건의 이전 값 갱신
+        for (let j = 0; j < i; j++) {
+            const prevRow = data[j];
+            const prevKey = `${prevRow.관할구청}_${prevRow.법정동}_${prevRow.본번}_${prevRow.부번}`;
+            if (savedData[prevKey] && savedData[prevKey] !== sheet[`H${j + 2}`]?.v) {
+                sheet[`H${j + 2}`] = { t: 's', v: savedData[prevKey] };
+                console.log(`📌 ${j + 2}행의 '시가표준' 값이 갱신되었습니다.`);
+            }
         }
 
         // 📌 엑셀에 값 저장
