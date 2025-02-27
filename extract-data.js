@@ -8,7 +8,7 @@ const readline = require('readline');  // readline 모듈 추가
     const sheetName = workbook.SheetNames[0]; // 첫 번째 시트 선택
     const sheet = workbook.Sheets[sheetName];
     const data = XLSX.utils.sheet_to_json(sheet, { raw: false }); // 엑셀 데이터를 JSON 형태로 변환
-    const length = 9669;    // 현재 저장된 엑셀 데이터 크기 (불필요한 row 크기)
+    const length = 9688;    // 현재 저장된 엑셀 데이터 크기 (불필요한 row 크기)
 
     // 📌 2. 저장된 개별공시지가 값을 위한 객체 초기화
     let savedData = {};
@@ -21,7 +21,7 @@ const readline = require('readline');  // readline 모듈 추가
     });
 
     // 📌 3. 데이터 입력 및 검색 반복 실행
-    for (let i = 0; i < length; i++) { // 9688 데이터임 이후로는 틀밖에 없음.
+    for (let i = 0; i < length; i++) {
         const row = data[i];
         console.log(`🔍 검색 중: ${row.관할구청} - ${row.법정동} - ${row.본번} - ${row.부번} - ${row.층}`);
 
@@ -60,15 +60,11 @@ const readline = require('readline');  // readline 모듈 추가
             console.log(`📍 읍면동 선택 완료`);
         }
 
-        // 본번과 부번을 항상 4자리 문자열로 유지
-        const 본번 = row.본번.toString().padStart(4, '0');
-        const 부번 = row.부번.toString().padStart(4, '0');
-
         // ③ 본번 입력 (input)
-        await page.type('#textfield', 본번, { delay: 100 });
+        await page.type('#textfield', row.본번, { delay: 100 });
 
         // ④ 부번 입력 (input)
-        await page.type('#textfield2', 부번, { delay: 100 });
+        await page.type('#textfield2', row.부번, { delay: 100 });
 
         // ⑤ 검색 버튼 클릭
         await page.waitForSelector('#searching a');
