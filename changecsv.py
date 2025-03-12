@@ -11,7 +11,6 @@ df["법정동명"] = df["법정동명"].apply(lambda x: x.split(" ", 1)[1] if " 
 # '대지권비율'에서 분자 값만 추출하고 소수점 둘째 자리까지 반올림 (비어 있으면 0)
 def extract_and_round(value):
     if pd.notna(value):  # 값이 비어있지 않다면
-        # "/" 앞의 값을 추출하고, 소수점 둘째 자리까지 반올림
         try:
             numerator = float(value.split("/")[0].strip())  # 분자 추출
             return round(numerator, 2)  # 소수점 둘째 자리까지 반올림
@@ -22,8 +21,8 @@ def extract_and_round(value):
 
 df["대지권비율"] = df["대지권비율"].apply(extract_and_round)
 
-# 필요한 컬럼만 선택 (법정동코드 추가)
-columns_to_extract = ["법정동코드", "시도명", "법정동명", "지번", "대지권비율"]
+# 필요한 컬럼만 선택 (법정동코드, 시도명, 법정동명, 지번, 대지권비율, 층명, 호명 추가)
+columns_to_extract = ["법정동코드", "시도명", "법정동명", "지번", "층명", "호명", "대지권비율"]
 df_selected = df[columns_to_extract]
 
 # 최대 행 개수 설정 (엑셀 시트당 최대 1,000,000개 행)
